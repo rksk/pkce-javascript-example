@@ -15,6 +15,13 @@
             padding: 10px;
             word-wrap: break-word;
         }
+        #config > label {
+            display: block;
+        }
+        #config > label > input {
+            display: block;
+            width: 100%;
+        }
     </style>
   </head>
   <body>
@@ -22,15 +29,92 @@
     <button id="startButton">Start OAuth Flow</button>
     <button id="refreshButton" style="display:none">Refresh Tokens</button>
     <button id="logoutButton" style="display:none">Logout</button>
+    <button id="showhideconfigs">Hide Configs</button>
+    <div id="config" style="padding-top: 20px;">
+        <label for="clientId">ClientId:
+            <input type="text" name="client Id" id="clientId" />
+        </label>
+        <label for="scope">Scope(s):
+            <input type="text" name="scope" id="scope" value="openid" />
+        </label>
+        <label for="authorizeEndpoint">Authorize Endpoint:
+            <input type="text" name="authorizeEndpoint" id="authorizeEndpoint" />
+        </label>
+        <label for="tokenEndpoint">Token Endpoint:
+            <input type="text" name="tokenEndpoint" id="tokenEndpoint" />
+        </label>
+        <label for="logoutEndpoint">Logout Endpoint:
+            <input type="text" name="logoutEndpoint" id="logoutEndpoint" />
+        </label>
+    </div>
+    
     <div id="result" style="padding-top: 20px;"></div>
     <script>
-        const authorizeEndpoint = "https://localhost:9443/oauth2/authorize";
-        const tokenEndpoint = "https://localhost:9443/oauth2/token";
-        const logoutEndpoint = "https://localhost:9443/oidc/logout";
-        const clientId = "public-test-client";
-
+        var clientId;
+        var scope;
+        var authorizeEndpoint;
+        var tokenEndpoint;
+        var logoutEndpoint;
         var id_token;
         var refresh_token;
+
+        if (getCookie('clientId')) {
+            clientId = getCookie('clientId');
+            document.getElementById('clientId').value = clientId;
+        }
+        document.getElementById('clientId').addEventListener('change', function (evt) {
+            clientId = this.value;
+            setCookie('clientId', clientId);
+        });
+
+        if (getCookie('scope') != null) {
+            scope = getCookie('scope');
+        } else {
+            scope = "openid";
+        }
+        document.getElementById('scope').value = scope;
+        document.getElementById('scope').addEventListener('change', function (evt) {
+            scope = this.value;
+            setCookie('scope', scope);
+        });
+
+        if (getCookie('authorizeEndpoint')) {
+            authorizeEndpoint = getCookie('authorizeEndpoint');
+        } else {
+            authorizeEndpoint = "https://localhost:9443/oauth2/authorize";
+        }
+        document.getElementById('authorizeEndpoint').value = authorizeEndpoint;
+        document.getElementById('authorizeEndpoint').addEventListener('change', function (evt) {
+            authorizeEndpoint = this.value;
+            setCookie('authorizeEndpoint', authorizeEndpoint);
+        });
+
+        if (getCookie('tokenEndpoint')) {
+            tokenEndpoint = getCookie('tokenEndpoint');
+        } else {
+            tokenEndpoint = "https://localhost:9443/oauth2/token";
+        }
+        document.getElementById('tokenEndpoint').value = tokenEndpoint;
+        document.getElementById('tokenEndpoint').addEventListener('change', function (evt) {
+            tokenEndpoint = this.value;
+            setCookie('tokenEndpoint', tokenEndpoint);
+        });
+
+        if (getCookie('logoutEndpoint')) {
+            logoutEndpoint = getCookie('logoutEndpoint');
+        } else {
+            logoutEndpoint = "https://localhost:9443/oidc/logout";
+        }
+        document.getElementById('logoutEndpoint').value = logoutEndpoint;
+        document.getElementById('logoutEndpoint').addEventListener('change', function (evt) {
+            logoutEndpoint = this.value;
+            setCookie('logoutEndpoint', clientId);
+        });
+
+        if (getCookie('showhideconfigs') && getCookie('showhideconfigs')=='none') {
+            document.getElementById('config').style.display = 'none';
+            document.getElementById("showhideconfigs").textContent = "Show Configs";
+        }
 
         var handleXhrResponse = function(xhr) {
             var response = xhr.response;
@@ -79,7 +163,6 @@
 
             if (code) {
                 var xhr = new XMLHttpRequest();
-
                 // xhr.onload = handleXhrResponse; 
                 xhr.onload = function() {
                     if (this.status == 200) {
@@ -123,7 +206,7 @@
                         code_challenge_method: challengeMethod,
                         code_challenge: codeChallenge,
                         redirect_uri: redirectUri,
-                        scope: "openid",
+                        scope: scope,
                         state: state
                     });
                 window.location = authorizeEndpoint + "/?" + args;
@@ -163,6 +246,20 @@
 
         }
 
+        document.getElementById("showhideconfigs").onclick = function() {
+            
+            var configBlock = document.getElementById('config');
+            var button = document.getElementById("showhideconfigs");
+            if (configBlock.style.display != 'none') {
+                configBlock.style.display = 'none';
+                button.textContent = "Show Configs";
+            } else {
+                configBlock.style.display = 'block';
+                button.textContent = "Hide Configs";
+            }
+            setCookie('showhideconfigs', configBlock.style.display);
+        }
+
         async function generateCodeChallenge(codeVerifier) {
             var digest = await crypto.subtle.digest("SHA-256",
                 new TextEncoder().encode(codeVerifier));
@@ -191,6 +288,30 @@
 
             return JSON.parse(jsonPayload);
         };
+
+        function setCookie(cname, cvalue) {
+            var basedUrl = window.location.pathname.split('?')[0];
+            const d = new Date();
+            d.setTime(d.getTime() + (7*24*60*60*1000));
+            let expires = "expires="+ d.toUTCString();
+            document.cookie = cname + "=" + cvalue + ";" + expires + ";path=" + basedUrl;
+        }
+
+        function getCookie(cname) {
+            let name = cname + "=";
+            let decodedCookie = decodeURIComponent(document.cookie);
+            let ca = decodedCookie.split(';');
+            for(let i = 0; i <ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+                }
+            }
+            return null;
+        }
 
         if (!crypto.subtle) {
             document.writeln('<p>' +
