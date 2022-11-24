@@ -108,7 +108,7 @@
         document.getElementById('logoutEndpoint').value = logoutEndpoint;
         document.getElementById('logoutEndpoint').addEventListener('change', function (evt) {
             logoutEndpoint = this.value;
-            setCookie('logoutEndpoint', clientId);
+            setCookie('logoutEndpoint', logoutEndpoint);
         });
 
         if (getCookie('showhideconfigs') && getCookie('showhideconfigs')=='none') {
