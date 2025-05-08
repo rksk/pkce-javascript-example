@@ -30,6 +30,7 @@
     <button id="refreshButton" style="display:none">Refresh Tokens</button>
     <button id="logoutButton" style="display:none">Logout</button>
     <button id="showhideconfigs">Hide Configs</button>
+    <button id="copyConfigs">Copy Configs</button>
     <div id="config" style="padding-top: 20px;">
         <label for="clientId">ClientId:
             <input type="text" name="client Id" id="clientId" />
@@ -108,7 +109,7 @@
         document.getElementById('logoutEndpoint').value = logoutEndpoint;
         document.getElementById('logoutEndpoint').addEventListener('change', function (evt) {
             logoutEndpoint = this.value;
-            setCookie('logoutEndpoint', clientId);
+            setCookie('logoutEndpoint', logoutEndpoint);
         });
 
         if (getCookie('showhideconfigs') && getCookie('showhideconfigs')=='none') {
@@ -160,8 +161,16 @@
         if (window.location.search) {
             var args = new URLSearchParams(window.location.search);
             var code = args.get("code");
+            var copiedConfigs = args.get("copiedConfigs");
 
-            if (code) {
+            if (copiedConfigs) {
+                setCookie('clientId', args.get("clientId"));
+                setCookie('scope', args.get("scope"));
+                setCookie('authorizeEndpoint', args.get("authorizeEndpoint"));
+                setCookie('tokenEndpoint', args.get("tokenEndpoint"));
+                setCookie('logoutEndpoint', args.get("logoutEndpoint"));
+                window.location = window.location.href.split('?')[0];
+            } else if (code) {
                 var xhr = new XMLHttpRequest();
                 // xhr.onload = handleXhrResponse; 
                 xhr.onload = function() {
@@ -258,6 +267,16 @@
                 button.textContent = "Hide Configs";
             }
             setCookie('showhideconfigs', configBlock.style.display);
+        }
+
+        document.getElementById("copyConfigs").onclick = function() {
+            var dataString = window.location.href.split('?')[0] + "?copiedConfigs=true";
+            dataString += "&clientId=" + clientId;
+            dataString += "&scope=" + scope;
+            dataString += "&authorizeEndpoint=" + authorizeEndpoint;
+            dataString += "&tokenEndpoint=" + tokenEndpoint;
+            dataString += "&logoutEndpoint=" + logoutEndpoint;
+            navigator.clipboard.writeText(dataString);
         }
 
         async function generateCodeChallenge(codeVerifier) {
